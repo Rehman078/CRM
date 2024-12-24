@@ -2,9 +2,9 @@ import express from "express";
 import connectDB from "./config/dbConfig.js";
 import dotenv from "dotenv";
 import userRoutes from "./routes/userRoutes.js"
-import adminRoutes from "./routes/adminRoutes.js"
 import contactRoutes from "./routes/contactRoutes.js"
-
+import fileRoutes from "./routes/fileRoutes.js"
+import contacFileRoutes from "./routes/contactfileRoutes.js"
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000
@@ -14,8 +14,9 @@ app.use(express.json());
 connectDB();
 // Routes
 app.use("/api", userRoutes);
-app.use("/api", adminRoutes)
-app.use("/api/contact", contactRoutes)
+app.use("/api/contacts", contactRoutes);
+app.use("/api/files", fileRoutes);
+app.use("/api/contact-files", contacFileRoutes)
 
 app.listen(port, () =>{
     console.log(`app is listen on ${port}`)

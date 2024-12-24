@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/User/userModel.js";
-import { httpResponse } from "../utils/index.js";
+import { httpResponse } from "../utils/httpResponse.js";
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "3d" });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 };
 
 // Register User
@@ -12,16 +12,13 @@ const registerUser = async (req, res) => {
   const { name, email, password, role } = req.body;
 
   if (!name || !email || !password) {
-     return res.status(400).json({ message: "Please provide all fields" });
+    return httpResponse.NOT_FOUND(res, null, "Please provide all fields")
   }
-
   const userExists = await User.findOne({ email });
   if (userExists) {
-    return res.status(400).json({ message: "User already exists" });
+    return httpResponse.NOT_FOUND(res, null, "User already exist")
   }
-
   const hashedPassword = await bcrypt.hash(password, 10);
-
   const user = await User.create({
     name,
     email,
@@ -29,10 +26,9 @@ const registerUser = async (req, res) => {
     role,
   });
   return httpResponse.CREATED(res, user)
- } catch(error){
-  return httpResponse.BAD_REQUEST(res, error)
+ } catch(err){
+  return httpResponse.BAD_REQUEST(res, err)
  }
-
 };
 
 // Login User
@@ -50,10 +46,10 @@ const loginUser = async (req, res) => {
       };
       return httpResponse.CREATED(res, responseData);
     } else {
-      res.status(401).json({ message: "Invalid email or password" });
+      return httpResponse.UNAUTHORIZED(res, null, "Invalid email or password")
     }
-  } catch (error) {
-    return httpResponse.INTERNAL_SERVER_ERROR(res, error)
+  } catch (err) {
+    return httpResponse.INTERNAL_SERVER_ERROR(res, err)
        
   }
 };
@@ -63,10 +59,10 @@ const loginUser = async (req, res) => {
 const getUsers = async (req, res) => {
   try{
     const users = await User.find({});
-    return httpResponse.SUCCESS(res, users)
+    return httpResponse.SUCCESS(res, users, "User Retrived Successfully")
   }
-  catch(error){
-    return httpResponse.INTERNAL_SERVER_ERROR(res, error)
+  catch(err){
+    return httpResponse.INTERNAL_SERVER_ERROR(res, err)
   }
   
 };
