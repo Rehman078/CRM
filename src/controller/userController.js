@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/User/userModel.js";
 import { httpResponse } from "../utils/httpResponse.js";
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 };
@@ -10,13 +11,12 @@ const generateToken = (id) => {
 const registerUser = async (req, res) => {
  try{
   const { name, email, password, role } = req.body;
-
   if (!name || !email || !password) {
     return httpResponse.NOT_FOUND(res, null, "Please provide all fields")
   }
   const userExists = await User.findOne({ email });
   if (userExists) {
-    return httpResponse.NOT_FOUND(res, null, "User already exist")
+    return httpResponse.CONFLICT(res, null, "User already exist")
   }
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await User.create({
@@ -50,10 +50,8 @@ const loginUser = async (req, res) => {
     }
   } catch (err) {
     return httpResponse.INTERNAL_SERVER_ERROR(res, err)
-       
   }
 };
-
 
 // Get All Users (Admin Only)
 const getUsers = async (req, res) => {

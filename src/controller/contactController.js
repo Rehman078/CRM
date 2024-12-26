@@ -2,6 +2,7 @@ import Contact from "../models/Contact/contactModel.js";
 import { validateContact } from "../validations/contactValidation.js";
 import { httpResponse } from "../utils/httpResponse.js";
 
+
 // CREATE Contact
 const createContact = async (req, res) => {
   const { name, email, phone, address, company, tags } = req.body;
@@ -68,3 +69,4 @@ export default {
     updateContact,
     deleteContact
 }
+

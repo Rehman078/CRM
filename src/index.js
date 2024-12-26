@@ -16,7 +16,7 @@ connectDB();
 app.use("/api", userRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/files", fileRoutes);
-app.use("/api/contact-files", contacFileRoutes)
+app.use("/api", contacFileRoutes)
 
 app.listen(port, () =>{
     console.log(`app is listen on ${port}`)
