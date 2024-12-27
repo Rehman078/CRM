@@ -1,14 +1,13 @@
 import multer from 'multer';
 
-// Multer configuration
+// Configure storage for uploaded files
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'src/uploads/'); // Save files in 'uploads' folder
+    cb(null, 'src/uploads/'); // Set your uploads directory
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + '-' + file.originalname); // Unique file name
-  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname); // Save with unique filename
+  }
 });
 
 const upload = multer({ storage });

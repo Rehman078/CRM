@@ -1,37 +1,44 @@
-import fs from "fs"
 import File from '../models/File/fileModel.js';
-import ContactFile from "../models/ContactFile/contactfileModel.js";
 import { httpResponse } from "../utils/httpResponse.js";
+import fs from 'fs';
+
 const createFile = async (req, res) => {
   try {
-    const { contact_id, note } = req.body;
+
+    const {  note, source, source_id, uploaded_by} = req.body;
+    if (!source || !source_id || !uploaded_by) {
+      return httpResponse.BAD_REQUEST(res, null, 'Source, source_id, and uploaded_by are required');
+    }
     if (!req.files || req.files.length === 0) {
       return httpResponse.BAD_REQUEST(res, null, 'Files are required');
     }
-    const filesData = req.files.map((file) => ({
-      contact_id,
+
+    // Validate source
+    const validSources = ["Contact", "Lead", "Activity"];
+    if (!validSources.includes(source)) {
+      return httpResponse.BAD_REQUEST(res, null, ' source type not valid');
+    }
+    
+    // Prepare file data
+    const files = req.files.map((file) => ({
       note,
       original_name: file.originalname,
       current_name: file.filename,
       type: file.mimetype,
       path: file.path,
       size: file.size,
+      source,
+      source_id,
+      uploaded_by,
+      
     }));
-    const newFiles = await File.insertMany(filesData);
-    // Find or create a ContactFile document
-    let contactFile = await ContactFile.findOne({ contact_id });
-
-    if (!contactFile) {
-      contactFile = await ContactFile.create({ contact_id, file_ids: newFiles.map((file) => file._id) });
-    } else {
-      contactFile.file_ids.push(...newFiles.map((file) => file._id));
-      await contactFile.save();
-    }
-    return httpResponse.CREATED(res, newFiles, "Files Uploaded Successfully");
+    const createdFiles = await File.insertMany(files);
+    return httpResponse.SUCCESS(res, createdFiles, "Files Created Successfully");
   } catch (err) {
     return httpResponse.BAD_REQUEST(res, err);
   }
 };
+
 //get all files
 const getAllFiles = async (req, res) => {
   try {
@@ -42,33 +49,47 @@ const getAllFiles = async (req, res) => {
   }
 };
 
+//get files by source id
+const getFilesBySourceId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const files = await File.find({ source_id: id });
+    if (files.length === 0) {
+      return httpResponse.NOT_FOUND(res, null, 'Files not found');
+    }
+    return httpResponse.SUCCESS(res, files, 'Files retrieved successfully');
+  } catch (err) {
+    return httpResponse.BAD_REQUEST(res, err);
+  }
+};
 //update files
 const updateFile = async (req, res) => {
-  try {
-    const { contact_id, note } = req.body;
+  try {const { source_id, source, note, uploaded_by, } = req.body;
+
     if (!req.files || req.files.length === 0) {
       return httpResponse.BAD_REQUEST(res, null, 'Files are required');
     }
+     // Validate source
+     const validSources = ["Contact", "Lead", "Activity"];
+     if (!validSources.includes(source)) {
+       return httpResponse.BAD_REQUEST(res, null, ' source type not valid');
+     }
     const filesData = req.files.map((file) => ({
-      contact_id,
       note,
       original_name: file.originalname,
       current_name: file.filename,
       type: file.mimetype,
       path: file.path,
       size: file.size,
+      source_id,
+      source,
+      uploaded_by,
     }));
     // Get existing file IDs associated with the contact
-    const existingFiles = await File.find({ contact_id });
+    const existingFiles = await File.find({ source_id });
     const existingFileIds = existingFiles.map(file => file._id);
     // Remove previous file records from the File collection
     await File.deleteMany({ _id: { $in: existingFileIds } });
-    // Remove previous file IDs from ContactFile
-    await ContactFile.updateOne(
-      { contact_id },
-      { $set: { file_ids: [] } }
-    );
-
     // Delete the physical files from the file system
     existingFiles.forEach(file => {
       if (fs.existsSync(file.path)) {
@@ -77,44 +98,37 @@ const updateFile = async (req, res) => {
     });
     // Create new files and insert into the File collection
     const newFiles = await File.insertMany(filesData);
-    // Extract the new file IDs
-    const newFileIds = newFiles.map(file => file._id);
-    // Update ContactFile with new file IDs
-    await ContactFile.updateOne(
-      { contact_id },
-      { $push: { file_ids: { $each: newFileIds } } }
-    );
+   
     return httpResponse.SUCCESS(res, newFiles, "Files Updated Successfully");
   } catch (err) {
     return httpResponse.BAD_REQUEST(res, err);
   }
 };
+
 //delete files
 const deleteFiles = async (req, res) => {
   try {
-    const { contact_id } = req.params;
-    // Get existing file IDs associated with the contact
-    const existingFiles = await File.find({ contact_id });
-    const existingFileIds = existingFiles.map(file => file._id);
-    // Find and delete the ContactFile document
-    const contactFile = await ContactFile.findOneAndDelete({ contact_id });
-    if (!contactFile) {
-      return httpResponse.NOT_FOUND(res, null, 'ContactFile not found');
+    const { id } = req.params;
+    const files = await File.find({ source_id: id });
+    if (files.length === 0) {
+      return httpResponse.NOT_FOUND(res, null, 'Files not found');
     }
-    // Delete files from the File model
-    await File.deleteMany({ _id: { $in: contactFile.file_ids } });   
+    // Delete the documents in one operation
+    await File.deleteMany({ source_id: id });
 
-    // Delete the physical files from the file system
-    existingFiles.forEach(file => {
+    // Delete the physical files
+    files.forEach(file => {
       if (fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
       }
     });
-    return httpResponse.SUCCESS(res, null, 'Files and ContactFile deleted successfully');
+
+    return httpResponse.SUCCESS(res, null, 'Files deleted successfully');
   } catch (err) {
     return httpResponse.BAD_REQUEST(res, err);
   }
 };
+
 
 
 
@@ -123,4 +137,5 @@ export default {
   getAllFiles,
   updateFile,
   deleteFiles,
+  getFilesBySourceId
 }

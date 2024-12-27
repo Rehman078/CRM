@@ -4,10 +4,12 @@ import fileController from '../controller/fileController.js';
 import {protect, authorizeRoles} from '../middlewares/auth.js'
 
 const router = express.Router();
-router.post('/', upload.array('files', 10), fileController.createFile);
-router.get('/', protect, authorizeRoles("Admin"), fileController.getAllFiles);
-router.put('/update-file', upload.array('files', 10), fileController.updateFile);
-router.delete('/:contact_id', fileController.deleteFiles);
+router.post('/', protect, authorizeRoles("Admin"), upload.array('files', 10), fileController.createFile);
+router.get('/', protect, authorizeRoles("Admin"), protect, authorizeRoles("Admin"), fileController.getAllFiles);
+router.get('/:id', protect, authorizeRoles("Admin"), protect, authorizeRoles("Admin"), fileController.getFilesBySourceId);
+router.put('/update', protect, authorizeRoles("Admin"), upload.array('files', 10), fileController.updateFile);
+router.delete('/:id',protect, authorizeRoles("Admin"), fileController.deleteFiles);
+
 
 
 export default router;

@@ -23,6 +23,7 @@ const createContact = async (req, res) => {
     return httpResponse.BAD_REQUEST(res, err);
   }
 };
+
 // READ All Contacts
 const getAllContacts = async (req, res) => {
   try {
