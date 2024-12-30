@@ -1,4 +1,5 @@
 import File from '../models/File/fileModel.js';
+import { fetchFilesByRole } from '../utils/fetchFilesByRole.js';
 import { httpResponse } from "../utils/httpResponse.js";
 import fs from 'fs';
 
@@ -39,16 +40,20 @@ const createFile = async (req, res) => {
   }
 };
 
-//get all files
+// READ files on base of role
 const getAllFiles = async (req, res) => {
   try {
-    const files = await File.find();
-    return httpResponse.SUCCESS(res, files, "File Retrived Successfully")
+    const { role, _id: userId } = req.user; 
+    const files = await fetchFilesByRole(role, userId);
+
+    return httpResponse.SUCCESS(res, files, "Files retrieved successfully");
   } catch (err) {
-    return httpResponse.BAD_REQUEST(res, err);
+    if (err.message === "Not authorized to view files") {
+      return httpResponse.FORBIDDEN(res, null, err.message);
+    }
+    return httpResponse.BAD_REQUEST(res, err, "Failed to retrieve files");
   }
 };
-
 //get files by source id
 const getFilesBySourceId = async (req, res) => {
   try {
@@ -64,7 +69,7 @@ const getFilesBySourceId = async (req, res) => {
 };
 //update files
 const updateFile = async (req, res) => {
-  try {const { source_id, source, note, uploaded_by, } = req.body;
+  try {const { source_id, source, note, created_by, } = req.body;
 
     if (!req.files || req.files.length === 0) {
       return httpResponse.BAD_REQUEST(res, null, 'Files are required');
@@ -83,7 +88,7 @@ const updateFile = async (req, res) => {
       size: file.size,
       source_id,
       source,
-      uploaded_by,
+      created_by,
     }));
     // Get existing file IDs associated with the contact
     const existingFiles = await File.find({ source_id });

@@ -1,11 +1,11 @@
 import Contact from "../models/Contact/contactModel.js";
 import { validateContact } from "../validations/contactValidation.js";
 import { httpResponse } from "../utils/httpResponse.js";
-
+import { fetchContactsByRole } from "../utils/fetchContactByRole.js";
 
 // CREATE Contact
 const createContact = async (req, res) => {
-  const { name, email, phone, address, company, tags } = req.body;
+  const { name, email, phone, address, company, tags, created_by } = req.body;
   const { error } = validateContact(req.body);
   if (error) return res.status(400).send(error.details[0].message);
   try {
@@ -16,6 +16,7 @@ const createContact = async (req, res) => {
       address,
       company,
       tags,
+      created_by
     });
     await newContact.save();
     return httpResponse.CREATED(res, newContact, "Contact Created Successfully");
@@ -24,15 +25,21 @@ const createContact = async (req, res) => {
   }
 };
 
-// READ All Contacts
+// READ Contacts on base of role
 const getAllContacts = async (req, res) => {
   try {
-    const contacts = await Contact.find();
-    return httpResponse.SUCCESS(res, contacts, "Contact Retrived Successfully");
+    const { role, _id: userId } = req.user; 
+    const contacts = await fetchContactsByRole(role, userId);
+
+    return httpResponse.SUCCESS(res, contacts, "Contacts retrieved successfully");
   } catch (err) {
-    return httpResponse.BAD_REQUEST(res, err);
+    if (err.message === "Not authorized to view contacts") {
+      return httpResponse.FORBIDDEN(res, null, err.message);
+    }
+    return httpResponse.BAD_REQUEST(res, err, "Failed to retrieve contacts");
   }
 };
+
 // UPDATE Contact
 const updateContact = async (req, res) => {
   const { name, email, phone, address, company, tags } = req.body;

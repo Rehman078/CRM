@@ -8,6 +8,7 @@ export const validateContact = (data) => {
     address: Joi.string().max(255).required(),
     company: Joi.string().max(100).required(),
     tags: Joi.array().required(),
+    created_by: Joi.string().required(),
   });
   return schema.validate(data);
 };
