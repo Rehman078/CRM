@@ -9,7 +9,7 @@ const contactSchema = new mongoose.Schema(
     address: { type: String },
     company: { type: String },
     tags: [{ type: String }],
-    created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User',},
   },
   { timestamps: true } 
 );

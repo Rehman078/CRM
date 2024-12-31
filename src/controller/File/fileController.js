@@ -1,13 +1,15 @@
-import File from '../models/File/fileModel.js';
-import { fetchFilesByRole } from '../utils/fetchFilesByRole.js';
-import { httpResponse } from "../utils/httpResponse.js";
+import File from '../../models/File/fileModel.js';
+import { fetchFilesByRole } from '../../utils/File/fetchFilesByRole.js';
+import { httpResponse } from "../../utils/index.js";
+import { deleteFilesByRole } from '../../utils/File/deleteFileByRole.js';
+import { updateFilesByRole } from '../../utils//File/updateFileByRole.js';
 import fs from 'fs';
 
 const createFile = async (req, res) => {
   try {
 
-    const {  note, source, source_id, uploaded_by} = req.body;
-    if (!source || !source_id || !uploaded_by) {
+    const {source, source_id} = req.body;
+    if (!source || !source_id ) {
       return httpResponse.BAD_REQUEST(res, null, 'Source, source_id, and uploaded_by are required');
     }
     if (!req.files || req.files.length === 0) {
@@ -22,7 +24,6 @@ const createFile = async (req, res) => {
     
     // Prepare file data
     const files = req.files.map((file) => ({
-      note,
       original_name: file.originalname,
       current_name: file.filename,
       type: file.mimetype,
@@ -30,7 +31,7 @@ const createFile = async (req, res) => {
       size: file.size,
       source,
       source_id,
-      uploaded_by,
+      uploaded_by:req.user._id,
       
     }));
     const createdFiles = await File.insertMany(files);
@@ -54,6 +55,7 @@ const getAllFiles = async (req, res) => {
     return httpResponse.BAD_REQUEST(res, err, "Failed to retrieve files");
   }
 };
+
 //get files by source id
 const getFilesBySourceId = async (req, res) => {
   try {
@@ -67,9 +69,11 @@ const getFilesBySourceId = async (req, res) => {
     return httpResponse.BAD_REQUEST(res, err);
   }
 };
+
 //update files
-const updateFile = async (req, res) => {
-  try {const { source_id, source, note, created_by, } = req.body;
+const updateFileP = async (req, res) => {
+  try {
+    const { source_id, source, note, created_by, } = req.body;
 
     if (!req.files || req.files.length === 0) {
       return httpResponse.BAD_REQUEST(res, null, 'Files are required');
@@ -110,32 +114,39 @@ const updateFile = async (req, res) => {
   }
 };
 
-//delete files
-const deleteFiles = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const files = await File.find({ source_id: id });
-    if (files.length === 0) {
-      return httpResponse.NOT_FOUND(res, null, 'Files not found');
-    }
-    // Delete the documents in one operation
-    await File.deleteMany({ source_id: id });
-
-    // Delete the physical files
-    files.forEach(file => {
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
-    });
-
-    return httpResponse.SUCCESS(res, null, 'Files deleted successfully');
-  } catch (err) {
-    return httpResponse.BAD_REQUEST(res, err);
+const updateFile = async (req, res) => {
+  try{
+    const {id}=req.params;
+  const { role, _id: userId } = req.user;
+    const { source_id, source } = req.body;
+    const filesData = req.files.map((file) => ({
+      original_name: file.originalname,
+      current_name: file.filename,
+      type: file.mimetype,
+      path: file.path,
+      size: file.size,
+      source_id,
+      source,
+      uploaded_by:req.user._id,
+    }));
+  
+  await updateFilesByRole(id, filesData, userId, role, res);
   }
-};
+  catch(err){
+    return httpResponse.BAD_REQUEST(res, err.message);
+  }
+}
 
-
-
+// DELETE files
+const deleteFiles = async (req, res) => {
+  try{
+   const { id } = req.params; 
+    const { role, _id: userId } = req.user; 
+    await deleteFilesByRole(id, userId, role, res);
+  }catch(err){
+    return httpResponse.BAD_REQUEST(res, err.message);
+  }
+}
 
 export default {
   createFile,

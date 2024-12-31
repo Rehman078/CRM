@@ -1,6 +1,6 @@
 // utils/contactFetcher.js
-import Contact from "../models/Contact/contactModel.js";
-import { httpResponse } from "../utils/httpResponse.js";
+import Contact from "../../models/Contact/contactModel.js";
+import { httpResponse } from "../index.js";
 export const fetchContactsByRole = async (role, userId) => {
   if (role === "Admin" || role === "Manager") {
     return Contact.find();

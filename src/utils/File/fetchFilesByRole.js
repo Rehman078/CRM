@@ -1,6 +1,6 @@
 // utils/contactFetcher.js
-import File from "../models/File/fileModel.js";
-import { httpResponse } from "../utils/httpResponse.js";
+import File from "../../models/File/fileModel.js";
+import { httpResponse } from "../../utils/index.js";
 export const fetchFilesByRole = async (role, userId) => {
   if (role === "Admin" || role === "Manager") {
     return File.find();
