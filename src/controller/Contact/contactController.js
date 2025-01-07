@@ -54,12 +54,6 @@ const updateContact = async (req, res) => {
 };
 
 
-
-
-
-
-
-
 // DELETE Contact
 const deleteContact = async (req, res) => {
   try {
@@ -72,7 +66,6 @@ const deleteContact = async (req, res) => {
 };
 
 //asigned salerep
-
 const assignContact = async (req, res) => {
   const { _id } = req.user; 
   const { salerep_ids } = req.body; 

@@ -5,18 +5,14 @@ import { httpResponse } from "../index.js";
 export const updateContactByRole = async (contactId, updatedData, userId, role, salerep_Ids, res) => {
   try {
     let contact;
-
     if (role === "Admin" || role === "Manager") {
       contact = await Contact.findByIdAndUpdate(contactId, updatedData, {
         new: true,
         runValidators: true,
       });
-
       if (!contact) {
         return httpResponse.NOT_FOUND(res, null, "Contact not found");
-      }
-
-      if (salerep_Ids && Array.isArray(salerep_Ids)) {
+      }      if (salerep_Ids && Array.isArray(salerep_Ids)) {
         await ContactAsignment.deleteMany({ contact_id: contactId });
 
         const assignments = salerep_Ids.map(salerepId => ({
@@ -24,20 +20,16 @@ export const updateContactByRole = async (contactId, updatedData, userId, role, 
           salerep_id: salerepId,
           assigned_by: userId,
         }));
-
         await ContactAsignment.insertMany(assignments);
       }
-
       return httpResponse.SUCCESS(res, contact, "Contact updated successfully");
     }
-
-    
     if (role === "SalesRep") {
       contact = await Contact.findOne({ _id: contactId, created_by: userId });
+      contact = await ContactAsignment.findOne({contact_id:cotactId, salerep_id:userId});
       if (!contact) {
         return httpResponse.NOT_FOUND(res, null, "You are not authorized to update this contact");
       }
-
       contact = await Contact.findByIdAndUpdate(contactId, updatedData, {
         new: true,
         runValidators: true,

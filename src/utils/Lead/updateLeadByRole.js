@@ -11,7 +11,6 @@ export const updateLeadByRole = async (leadId, updatedData, userId, role, salere
         new: true,
         runValidators: true,
       });
-
       if (!lead) {
         return httpResponse.NOT_FOUND(res, null, "lead not found");
       }
@@ -34,6 +33,7 @@ export const updateLeadByRole = async (leadId, updatedData, userId, role, salere
     
     if (role === "SalesRep") {
       lead = await Lead.findOne({ _id: leadId, created_by: userId });
+      lead = await LeadAsignment.findOne({lead_id:leadId, salerep_id:userId});
       if (!lead) {
         return httpResponse.NOT_FOUND(res, null, "You are not authorized to update this lead");
       }
