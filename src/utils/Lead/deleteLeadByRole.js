@@ -1,14 +1,18 @@
 import Lead from "../../models/Lead/leadModel.js"
+import LeadAsignment from "../../models/Lead/assignLeadModel.js";
 import { httpResponse } from "./../index.js";
 
 export const deleteLeadById = async (leadId, userId, role, res) => {
     let lead;
   
     if (role === "Admin" || role === "Manager") {
+      
+      await LeadAsignment.deleteMany({ lead_id:leadId });
       lead = await Lead.findByIdAndDelete(leadId);
       if (!lead) {
         return httpResponse.NOT_FOUND(res, null, "Lead not found");
       }
+
       return httpResponse.SUCCESS(res, null, "Lead deleted successfully");
     }
   

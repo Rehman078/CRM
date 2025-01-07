@@ -2,7 +2,8 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/User/userModel.js";
 import { httpResponse } from "../utils/httpResponse.js";
-
+import sendMail from "../nodemailer/nodemailerIntegration.js";
+import { loginSuccessEmailTemplate } from "../nodemailer/emailTemplate.js";
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 };
@@ -27,7 +28,7 @@ const registerUser = async (req, res) => {
   });
   return httpResponse.CREATED(res, user)
  } catch(err){
-  return httpResponse.BAD_REQUEST(res, err)
+  return httpResponse.BAD_REQUEST(res, err.message)
  }
 };
 
@@ -44,12 +45,15 @@ const loginUser = async (req, res) => {
         role: user.role,
         token: generateToken(user.id),
       };
+      // Send Welcome Email
+      sendMail(email, "Login Successful", loginSuccessEmailTemplate(user.name));
       return httpResponse.CREATED(res, responseData);
+      
     } else {
       return httpResponse.UNAUTHORIZED(res, null, "Invalid email or password")
     }
   } catch (err) {
-    return httpResponse.INTERNAL_SERVER_ERROR(res, err)
+    return httpResponse.INTERNAL_SERVER_ERROR(res, err.message)
   }
 };
 
@@ -60,7 +64,7 @@ const getUsers = async (req, res) => {
     return httpResponse.SUCCESS(res, users, "User Retrived Successfully")
   }
   catch(err){
-    return httpResponse.INTERNAL_SERVER_ERROR(res, err)
+    return httpResponse.INTERNAL_SERVER_ERROR(res, err.message)
   }
   
 };

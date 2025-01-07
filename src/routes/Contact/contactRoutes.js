@@ -8,4 +8,5 @@ router.get("/",  protect, authorizeRoles("Admin", "Manager", "SalesRep"), contac
 router.put("/:id",  protect, authorizeRoles("Admin", "SalesRep", "Manager"), contactController.updateContact);
 router.delete("/:id", protect, authorizeRoles("Admin", "SalesRep", "Manager"), contactController.deleteContact);
 
+router.patch("/assign/:id",  protect, authorizeRoles("Admin" , "Manager"), contactController.assignContact);
 export default router;

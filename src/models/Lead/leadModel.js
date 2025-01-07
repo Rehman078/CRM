@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 const leadSchema = new mongoose.Schema({
     name:{
@@ -13,10 +12,6 @@ const leadSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-
-    assignedsalerep:{   
-        type: mongoose.Schema.Types.ObjectId,
-     },
     status:{
         type: String,
         enum: ["New", "Contacted", "Qualified", "Lost"],
@@ -25,8 +20,12 @@ const leadSchema = new mongoose.Schema({
     created_by: { 
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-
-    }   
+    },
+    updated_by: { 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    }  
 },{ timestamps: true }
 );
 const Lead = mongoose.model('Lead', leadSchema);

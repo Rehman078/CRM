@@ -1,10 +1,10 @@
-import multer from 'multer';
 
-// Configure storage for uploaded files
+import multer from "multer";
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'src/uploads/'); // Set your uploads directory
+    cb(null, "src/public/"); //
   },
+ 
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname); // Save with unique filename
   }

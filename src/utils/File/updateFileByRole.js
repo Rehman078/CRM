@@ -1,7 +1,6 @@
 import File from "../../models/File/fileModel.js";
 import { httpResponse } from "../../utils/index.js";
 import fs from "fs";
-import mongoose from "mongoose";
 
 export const updateFilesByRole = async (fileSourceId, updatedData, userId, role, res) => {
   try {

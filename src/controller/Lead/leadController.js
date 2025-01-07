@@ -1,10 +1,11 @@
 import Lead from "../../models/Lead/leadModel.js";
+import LeadAsignment from "../../models/Lead/assignLeadModel.js";
 import { httpResponse } from "../../utils/index.js";
 import {validateLead}  from "../../validations/leadValidation.js";
 import { fetchLeadsByRole } from "../../utils/Lead/fetchAssignLeadByRole.js";
 import { deleteLeadById } from "../../utils/Lead/deleteLeadByRole.js";
-import { updateLeadById } from "../../utils/Lead/updateLeadByRole.js";
-
+import { updateLeadByRole } from "../../utils/Lead/updateLeadByRole.js";
+import { getLeadsById } from "../../utils/Lead/getLeadById.js";
 //create lead
 const createLead = async (req, res) => {
     try {
@@ -31,18 +32,18 @@ const createLead = async (req, res) => {
 const getLeads = async (req, res) => {
     try {
         const {role, _id:userId}= req.user;
-        const leads = await fetchLeadsByRole(role, userId);
-        return httpResponse.SUCCESS(res, leads, "All leads fetched successfully");
+      await fetchLeadsByRole(role, userId , res);
+       
     } catch (err) {
         return httpResponse.BAD_REQUEST(res, err.message);
     }
 }
+
 //get lead by id
 const getLeadById = async (req, res) => {
     try {
-        const lead = await Lead.findById(req.params.id);
-        if (!lead) return httpResponse.NOT_FOUND(res, "Lead not found");
-        return httpResponse.SUCCESS(res, lead, "Lead fetched successfully");
+      const { role, _id: userId } = req.user;
+      return await getLeadsById(req.params.id, userId, role, res);
     } catch (err) {
         return httpResponse.BAD_REQUEST(res, err.message);
     }
@@ -50,18 +51,13 @@ const getLeadById = async (req, res) => {
 
 //update lead
 const updateLead = async (req, res) => {
-  const { name, contactinfo, leadsource, assignedsalerep, status } = req.body;
-
-  // Validate request body
-  const { error } = validateLead(req.body);
-  if (error) return httpResponse.BAD_REQUEST(res, error.details[0].message);
-
+  const { name, contactinfo, leadsource, status, salerep_Ids } = req.body;
   try {
     const id = req.params.id;
     const { role, _id: userId } = req.user;
 
-    const updatedData = { name, contactinfo, leadsource, assignedsalerep, status };
-    return await updateLeadById(id, updatedData, userId, role, res);
+    const updatedData = { name, contactinfo, leadsource, status, updated_by: userId };
+    return await updateLeadByRole(id, updatedData, userId, role, salerep_Ids, res);
   } catch (err) {
     return httpResponse.BAD_REQUEST(res, err.message);
   }
@@ -83,25 +79,54 @@ const deleteLead = async (req, res) => {
 
 //lead assign
 const assignLead = async (req, res) => {
-    const { assignedsalerep } = req.body;
-    try {
-      const lead = await Lead.findByIdAndUpdate(
-        req.params.id,
-        { assignedsalerep },
-        { new: true }
-      );
-      if (!lead) return res.status(404).json({ message: 'Lead not found' });
-         
-        return httpResponse.SUCCESS(res, lead, "Lead assigned successfully");
-    } catch (err) {
-        return httpResponse.BAD_REQUEST(res, err.message);
+  const { _id } = req.user; 
+  const { salerep_ids } = req.body; 
+  const { id: lead_id } = req.params;
+
+  try {
+    const leadExists = await Lead.findById(lead_id);
+    if (!leadExists) {
+      return res.status(404).json({ message: 'Lead not found' });
     }
-  };
+
+    // Create assignments for each SaleRep
+    const assignments = salerep_ids.map((salerep_id) => ({
+      lead_id,
+      salerep_id,
+      assigned_by: _id,
+    }));
+
+    // Save the assignments in bulk
+    await LeadAsignment.insertMany(assignments);
+    // Optionally, fetch the updated data for response
+    const assignedReps = await LeadAsignment.find({ lead_id }).populate('salerep_id');
+
+    return httpResponse.SUCCESS(res, assignedReps, "Contact assigned to sales representatives successfully");
+  } catch (err) {
+    return httpResponse.BAD_REQUEST(res, err.message);
+  }
+};
+ 
+//update status
+const updateStatus = async (req, res) => {
+
+  try {
+    const id = req.params.id;
+  const { role, _id: userId } = req.user;
+  const { status } = req.body; 
+  
+  const updatedData = { status, updated_by: userId };
+    return await updateLeadByRole(id, updatedData, userId, role , res);
+  } catch (err) {
+    return httpResponse.BAD_REQUEST(res, err.message);
+  }
+};
     export default {
         createLead,
         getLeads,
         getLeadById,
         updateLead,
         deleteLead,
-        assignLead
+        assignLead,
+        updateStatus
     }

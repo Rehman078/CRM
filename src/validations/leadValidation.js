@@ -6,7 +6,6 @@ export const validateLead = (data) => {
     name: Joi.string().min(3).max(50).required(),
     contactinfo: Joi.string().min(10).max(15).required(),
     leadsource: Joi.string().min(3).max(50).required(),
-    assignedsalerep: Joi.string().optional(),
     status: Joi.string()
       .valid("New", "Contacted", "Qualified", "Lost")
       .required(),

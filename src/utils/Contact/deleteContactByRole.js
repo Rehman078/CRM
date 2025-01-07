@@ -1,4 +1,5 @@
 import Contact from "../../models/Contact/contactModel.js";
+import ContactAssignment from "../../models/Contact/assignContactModel.js"
 import { httpResponse } from "../index.js";
 
 
@@ -6,6 +7,7 @@ export const deleteContactByRole = async (contactId, userId, role, res) => {
   let contact;
 
   if (role === "Admin" || role === "Manager") {
+    await ContactAssignment.deleteMany({ contact_id:contactId });
     contact = await Contact.findByIdAndDelete(contactId);
     if (!contact) {
       return httpResponse.NOT_FOUND(res, null, "contact not found");
