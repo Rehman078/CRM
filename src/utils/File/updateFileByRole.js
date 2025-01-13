@@ -6,10 +6,12 @@ export const updateFilesByRole = async (fileSourceId, updatedData, userId, role,
   try {
 
     let file;
-
+ 
     if (role === "Admin" || role === "Manager") {
+      console.log(fileSourceId)
       // Find the file by ID
       file = await File.findOne({ source_id: fileSourceId });
+      console.log(file)
       if (!file) {
         return httpResponse.NOT_FOUND(res, null, "File not found");
       }

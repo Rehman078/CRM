@@ -7,9 +7,7 @@ const fileSchema = new mongoose.Schema({
   path: { type: String, required: true },
   size: { type: Number, required: true },
   link: { type: String },
-  
-  uploaded_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  updated_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  uploaded_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required:true},
   source: { type: String, enum: ["Contact", "Lead", "Activity"], required: true },
   source_id: { type: mongoose.Schema.Types.ObjectId, required: true },
 }, { timestamps: true });

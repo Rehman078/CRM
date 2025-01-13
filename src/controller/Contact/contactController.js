@@ -1,9 +1,7 @@
 import Contact from "../../models/Contact/contactModel.js";
 import { validateContact } from "../../validations/contactValidation.js";
 import { httpResponse } from "../../utils/index.js";
-import { fetchContactsByRole } from "../../utils/Contact/fetchContactByRole.js";
-import { deleteContactByRole } from "../../utils/Contact/deleteContactByRole.js";
-import { updateContactByRole } from "../../utils/Contact/updateContactByRole.js";
+import { fetchContactsByRole, updateContactByRole, deleteContactByRole } from "../../utils/Contact/contactHelper.js";
 import ContactAssignment from "../../models/Contact/assignContactModel.js";
 // CREATE Contact
 const createContact = async (req, res) => {
@@ -27,7 +25,7 @@ const createContact = async (req, res) => {
       "Contact Created Successfully"
     );
   } catch (err) {
-    return httpResponse.BAD_REQUEST(res, err);
+    return httpResponse.BAD_REQUEST(res, err.message);
   }
 };
 
@@ -89,21 +87,25 @@ const assignContact = async (req, res) => {
 
   try {
     const contactExists = await Contact.findById(contact_id);
-    console.log(contactExists);
+    
     if (!contactExists) {
       return res.status(404).json({ message: "Contact not found" });
     }
-
-    // Create assignments for each SaleRep
+    const existingAssignments = await ContactAssignment.find({ contact_id, salerep_id: { $in: salerep_ids } });
+    
+    if (existingAssignments.length > 0) {
+      return httpResponse.BAD_REQUEST(res, null, "This contact is already assigned to the provided SalesRep")
+    }
     const assignments = salerep_ids.map((salerep_id) => ({
       contact_id,
       salerep_id,
       assigned_by: _id,
     }));
+
     await ContactAssignment.insertMany(assignments);
-    const assignedReps = await ContactAssignment.find({ contact_id }).populate(
-      "salerep_id"
-    );
+
+    const assignedReps = await ContactAssignment.find({ contact_id }).populate("salerep_id", "name");
+
     return httpResponse.SUCCESS(
       res,
       assignedReps,
