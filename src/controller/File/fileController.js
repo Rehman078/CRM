@@ -1,46 +1,36 @@
 import File from '../../models/File/fileModel.js';
-import { checkSalesRepAuthorization } from '../../utils/File/createFileByRole.js';
-import { fetchFilesByRole } from '../../utils/File/fetchFilesByRole.js';
+import { createdFileByRole, fetchFilesByRole, updateFilesByRole, deleteFilesByRole } from '../../utils/File/fileHelper.js';
 import { httpResponse } from "../../utils/index.js";
-import { deleteFilesByRole } from '../../utils/File/deleteFileByRole.js';
-import { updateFilesByRole } from '../../utils//File/updateFileByRole.js';
 const createFile = async (req, res) => {
   try {
     const { source, source_id } = req.body;
-    const userRole = req.user.role;
-    const userId = req.user._id;
-
+    const { role: userRole, _id: userId } = req.user;
     if (!req.files || req.files.length === 0) {
-      return httpResponse.BAD_REQUEST(res, null, 'Files are required');
+      return httpResponse.BAD_REQUEST(res, null, "Files are required");
     }
-
-    if (userRole === "SalesRep") {
-      const isAuthorized = await checkSalesRepAuthorization(userId, source, source_id);
-      if (!isAuthorized) {
-        return httpResponse.FORBIDDEN(res, null, "You are not authorized to upload files for this Lead/Contact.");
-      }
-    } else if (userRole !== "Admin" && userRole !== "Manager") {
-      return httpResponse.FORBIDDEN(res, null, "You do not have the necessary permissions.");
+    const isAuthorized = await createdFileByRole(userId, userRole, source, source_id);
+    if (!isAuthorized) {
+      return httpResponse.FORBIDDEN(res, null, "You are not authorized to upload files for this Lead/Contact.");
     }
-
     const files = req.files.map((file) => ({
       original_name: file.originalname,
       current_name: file.filename,
       type: file.mimetype,
-      path: file.path, 
+      path: file.path,
       size: file.size,
       source,
       source_id,
       uploaded_by: userId,
-      link: `${req.protocol}://${req.get("host")}/${file.path}`, 
+      link: `${req.protocol}://${req.get("host")}/${file.path}`,
     }));
 
     const createdFiles = await File.insertMany(files);
-    return httpResponse.SUCCESS(res, createdFiles, "Files Created Successfully");
+    return httpResponse.SUCCESS(res, createdFiles, "Files created successfully");
   } catch (err) {
     return httpResponse.BAD_REQUEST(res, err.message);
   }
-}
+};
+
 
 
 const getAllFiles = async (req, res) => {
@@ -63,7 +53,6 @@ const getAllFiles = async (req, res) => {
     return httpResponse.BAD_REQUEST(res, err.message);
   }
 };
-
 
 //get files by source id
 const getFilesBySourceId = async (req, res) => {

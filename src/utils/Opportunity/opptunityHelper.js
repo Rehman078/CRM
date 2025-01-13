@@ -34,8 +34,8 @@ export const createOpportunityByRole = async(userId, role, { name, expected_reve
             }
           }
       
-          // Proceed to create the opportunity if the checks pass
-          opportunity = new Opportunity({
+
+        opportunity = new Opportunity({
             name,
             expected_revenue,
             close_date,

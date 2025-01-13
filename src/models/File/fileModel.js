@@ -12,8 +12,6 @@ const fileSchema = new mongoose.Schema({
   source_id: { type: mongoose.Schema.Types.ObjectId, required: true },
 }, { timestamps: true });
 
-
-
 const File = mongoose.model('File', fileSchema);
 
 export default File;
