@@ -1,20 +1,23 @@
 import Note from "../../models/Note/noteModel.js";
 import { httpResponse } from "../../utils/index.js";
 import { validateNote } from "../../validations/noteValidation.js";
-import { getNotesByRole } from "../../utils/Note/fetchNoteByRole.js";
-import { updateNoteByRole } from "../../utils/Note/updateNoteByRole.js";
-import { deleteNotesByRole } from "../../utils/Note/deleteNotesByRole.js";
+import { createdNoteByRole, fetchNoteByRole, updateNoteByRole, deleteNotesByRole } from "../../utils/Note/noteHelper.js";
 //create note
 const createNote = async (req, res) => {
     try{
         const { note, note_type, note_to } = req.body;
+        const { _id:userId, role } = req.user
         const { error } = validateNote(req.body);
         if (error) return res.status(400).send(error.details[0].message);
+        const isAuthorized = await createdNoteByRole(userId, role, note_to, note_type);
+            if (!isAuthorized) {
+              return httpResponse.FORBIDDEN(res, null, "You are not authorized to upload note for this Lead/Contact.");
+            }
         const noteInfo = new Note({
             note,
             note_type,
             note_to,
-            note_by: req.user._id
+            created_by: userId
         });
         await noteInfo.save();
         return httpResponse.SUCCESS(res, noteInfo, "Note created successfully");
@@ -25,13 +28,13 @@ const createNote = async (req, res) => {
 
 //get all notes
 const getNotes = async (req, res) => {
-    try{
+    try {
         const { role, _id } = req.user;
-
-        return await getNotesByRole(_id, role, res);
-
-
-    }catch(err){
+        const { note_to, note_type } = req.query;
+        const notes = await fetchNoteByRole(note_type, note_to, role, _id);
+        
+        return httpResponse.SUCCESS(res, notes); 
+    } catch (err) {
         return httpResponse.BAD_REQUEST(res, err.message);
     }
 }
@@ -48,7 +51,6 @@ const updateNote = async (req, res) => {
             note,
             note_type,
             note_to,
-            note_by: req.user._id
         };
 
         return await updateNoteByRole(id, updatedData, _id, role, res);
