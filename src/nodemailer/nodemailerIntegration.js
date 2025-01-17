@@ -9,7 +9,6 @@ const transporter = nodemailer.createTransport({
     user: process.env.Email,
     pass: process.env.Email_Pass,
   },
-
 });
 
 // async..await is not allowed in global scope, must use a wrapper

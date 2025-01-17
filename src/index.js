@@ -9,11 +9,13 @@ import noteRoutes from "./routes/Note/noteRoutes.js"
 import piplineRoutes from "./routes/Pipline/piplineRoutes.js"
 import stageRoutes from "./routes/Stage/stageRoutes.js"
 import opportuniyRoutes from "./routes/Opportunity/opportunityRoutes.js"
+import sendOpportunityReminders from "../src/nodemailer/sheduleOpporunityEmail.js";
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000
 app.use(express.json());
-
+// Start the cron job
+sendOpportunityReminders();
 //dbconnection
 connectDB();
 app.use("/src/public", express.static("src/public"));

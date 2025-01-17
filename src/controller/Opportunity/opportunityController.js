@@ -5,29 +5,39 @@ import {
   deleteOpportunityByRole,
 } from "../../utils/Opportunity/opptunityHelper.js";
 import { httpResponse } from "../../utils/index.js";
+import moment from 'moment';
 
 const createOpportunity = async (req, res) => {
   try {
-    const { name, expected_revenue, close_date, pipelineId, type, assignedTo } =req.body;
+    const { name, expected_revenue, close_date, pipelineId, type, assignedTo } =
+      req.body;
     const { _id: userId, role } = req.user;
-    const opportunity = await createOpportunityByRole(userId, role, {
+
+    // Convert close_date from DD-MM-YYYY to a valid Date format
+    const parsedDate = moment(close_date, 'DD-MM-YYYY', true);
+
+    if (!parsedDate.isValid()) {
+      return httpResponse.BAD_REQUEST(res, 'Invalid date format for close_date. Use DD-MM-YYYY.');
+    }
+
+    const opportunityData = {
       name,
       expected_revenue,
-      close_date,
+      close_date: parsedDate.toDate(), // Use parsed date
       pipelineId,
       type,
       assignedTo,
-    });
+    };
 
-    return httpResponse.CREATED(
-      res,
-      opportunity,
-      "Opportunity created successfully"
-    );
+    const opportunity = await createOpportunityByRole(userId, role, opportunityData);
+
+    return httpResponse.CREATED(res, opportunity, "Opportunity created successfully");
   } catch (err) {
+    console.error(err);
     return httpResponse.BAD_REQUEST(res, err.message);
   }
 };
+
 
 const getOpportunity = async (req, res) => {
   try {

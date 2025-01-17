@@ -21,13 +21,14 @@ const createStage = async (req, res) => {
 
 const getStage = async (req, res) => {
   try {
-    const stages = await Stage.find()
+    const stages = await Stage.find().populate('pipline_id', 'name');
     return httpResponse.SUCCESS(res, stages, "All Pipeline Stages");
   } catch (err) {
     console.error(err);
     return httpResponse.BAD_REQUEST(res, err.message);
   }
 };
+
 
 const updateStage = async (req, res) => {
   try {
