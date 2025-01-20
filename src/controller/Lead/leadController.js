@@ -2,6 +2,8 @@ import Lead from "../../models/Lead/leadModel.js";
 import LeadAsignment from "../../models/Lead/assignLeadModel.js";
 import { httpResponse } from "../../utils/index.js";
 import { validateLead } from "../../validations/leadValidation.js";
+import sendMail from "../../nodemailer/nodemailerIntegration.js";
+import { leadAssignEmailTemplate } from "../../nodemailer/emailTemplate.js";
 import {
   fetchLeadsByRole,
   getLeadsById,
@@ -128,10 +130,20 @@ const assignLead = async (req, res) => {
     }));
 
     await LeadAsignment.insertMany(assignments);
-    const assignedReps = await LeadAsignment.find({ lead_id }).populate(
-      "salerep_id"
-    );
-
+    // Fetch assigned sales reps with their email addresses
+    const assignedReps = await LeadAsignment.find({ lead_id }).populate("salerep_id", "name email");
+      
+    // Send an email to each assigned sales representative
+    for (const rep of assignedReps) {
+      const { name, email } = rep.salerep_id;
+      
+      // Call the sendMail function for each sales representative
+      sendMail(
+        email,
+        "Lead Assignment Email",
+        leadAssignEmailTemplate(name, leadExists.name)
+      );
+    }
     return httpResponse.SUCCESS(
       res,
       assignedReps,

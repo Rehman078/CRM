@@ -5,31 +5,54 @@ import {
   deleteOpportunityByRole,
 } from "../../utils/Opportunity/opptunityHelper.js";
 import { httpResponse } from "../../utils/index.js";
+import Lead from "../../models/Lead/leadModel.js";
+import Contact from "../../models/Contact/contactModel.js"
 import moment from 'moment';
+import sendMail from "../../nodemailer/nodemailerIntegration.js";
+import { opportunityCreateEmailTemplate } from "../../nodemailer/emailTemplate.js";
 
 const createOpportunity = async (req, res) => {
   try {
-    const { name, expected_revenue, close_date, pipelineId, type, assignedTo } =
-      req.body;
-    const { _id: userId, role } = req.user;
+    const { name, expected_revenue, close_date, pipelineId, type, assignedTo } = req.body;
+    const { _id: userId, name:userName, role, email } = req.user;
 
-    // Convert close_date from DD-MM-YYYY to a valid Date format
-    const parsedDate = moment(close_date, 'DD-MM-YYYY', true);
-
+    // Validate close_date format
+    const parsedDate = moment(close_date, "DD-MM-YYYY", true);
     if (!parsedDate.isValid()) {
-      return httpResponse.BAD_REQUEST(res, 'Invalid date format for close_date. Use DD-MM-YYYY.');
+      return httpResponse.BAD_REQUEST(res, "Invalid date format for close_date. Use DD-MM-YYYY.");
+    }
+    // Validate `type` and fetch `assignedTo` details
+    let assignedToUser;
+    if (type === "Contact") {
+      assignedToUser = await Contact.findById(assignedTo).select("name email");
+    } else if (type === "Lead") {
+      assignedToUser = await Lead.findById(assignedTo).select("name email");
+    } else {
+      return httpResponse.BAD_REQUEST(res, "Invalid type. Use 'Contact' or 'Lead'.");
+    }
+
+    if (!assignedToUser) {
+      return httpResponse.NOT_FOUND(res, "AssignedTo user not found.");
     }
 
     const opportunityData = {
       name,
       expected_revenue,
-      close_date: parsedDate.toDate(), // Use parsed date
+      close_date: parsedDate.toDate(),
       pipelineId,
       type,
       assignedTo,
+      created_by: userId,
     };
 
     const opportunity = await createOpportunityByRole(userId, role, opportunityData);
+
+    // Send email notification
+    sendMail(
+      email,
+      "Opportunity Created",
+      opportunityCreateEmailTemplate(userName, opportunity.name, assignedToUser.name)
+    );
 
     return httpResponse.CREATED(res, opportunity, "Opportunity created successfully");
   } catch (err) {

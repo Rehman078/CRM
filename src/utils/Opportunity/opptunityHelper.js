@@ -106,8 +106,8 @@ export const createOpportunityByRole = async (
 
 export const getOpportunityByRole = async (userId, role, type, assignedTo) => {
   try {
+    
     let matchCriteria = {};
-
     if (role === "Admin" || role === "Manager") {
       matchCriteria = { type, assignedTo };
     } else if (role === "SalesRep") {
