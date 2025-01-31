@@ -36,7 +36,6 @@ export const fetchLeadsByRole = async (role, userId, res) => {
             as: 'assignments',
           },
         },
-        { $unwind: { path: '$assignments', preserveNullAndEmptyArrays: true } },
         {
           $lookup: {
             from: 'users',
@@ -45,17 +44,17 @@ export const fetchLeadsByRole = async (role, userId, res) => {
             as: 'assignments.salerep_details',
           },
         },
-        { $unwind: { path: '$assignments.salerep_details', preserveNullAndEmptyArrays: true } },
         {
           $project: {
             name: 1,
-            contactInfo: 1,
+            contactinfo: 1,
             leadsource: 1,
             status: 1,
             created_by: {
               id: '$created_by_details._id',
               name: '$created_by_details.name',
               email: '$created_by_details.email',
+              role: '$created_by_details.role',
             },
             updated_by: {
               $cond: {
@@ -65,22 +64,22 @@ export const fetchLeadsByRole = async (role, userId, res) => {
                   name: '$updated_by_details.name',
                   email: '$updated_by_details.email',
                 },
-                else: '$$REMOVE', 
+                else: '$$REMOVE',
               },
             },
             assigned_to: {
-              $cond: {
-                if: { $and: ['$assignments.salerep_details._id', '$assignments.salerep_details.name', '$assignments.salerep_details.email'] },
-                then: {
-                  id: '$assignments.salerep_details._id',
-                  name: '$assignments.salerep_details.name',
-                  email: '$assignments.salerep_details.email',
+              $map: {
+                input: '$assignments.salerep_details',
+                as: 'salerep',
+                in: {
+                  id: '$$salerep._id',
+                  name: '$$salerep.name',
+                  email: '$$salerep.email',
                 },
-                else: '$$REMOVE', 
               },
             },
-          }
-        }
+          },
+        },
       ];
     } else if (role === 'SalesRep') {
       // Pipeline for SalesRep
@@ -93,7 +92,6 @@ export const fetchLeadsByRole = async (role, userId, res) => {
             as: 'assignments',
           },
         },
-        { $unwind: { path: '$assignments', preserveNullAndEmptyArrays: true } },
         {
           $lookup: {
             from: 'users',
@@ -139,17 +137,17 @@ export const fetchLeadsByRole = async (role, userId, res) => {
             },
           },
         },
-        { $unwind: { path: '$assignments.salerep_details', preserveNullAndEmptyArrays: true } },
         {
           $project: {
             name: 1,
-            contactInfo: 1,
+            contactinfo: 1,
             leadsource: 1,
             status: 1,
             created_by: {
               id: '$created_by_details._id',
               name: '$created_by_details.name',
               email: '$created_by_details.email',
+              role: '$created_by_details.role',
             },
             updated_by: {
               $cond: {
@@ -159,22 +157,22 @@ export const fetchLeadsByRole = async (role, userId, res) => {
                   name: '$updated_by_details.name',
                   email: '$updated_by_details.email',
                 },
-                else: '$$REMOVE', 
+                else: '$$REMOVE',
               },
             },
             assigned_to: {
-              $cond: {
-                if: { $and: ['$assignments.salerep_details._id', '$assignments.salerep_details.name', '$assignments.salerep_details.email'] },
-                then: {
-                  id: '$assignments.salerep_details._id',
-                  name: '$assignments.salerep_details.name',
-                  email: '$assignments.salerep_details.email',
+              $map: {
+                input: '$assignments.salerep_details',
+                as: 'salerep',
+                in: {
+                  id: '$$salerep._id',
+                  name: '$$salerep.name',
+                  email: '$$salerep.email',
                 },
-                else: '$$REMOVE', 
               },
             },
-          }
-        }
+          },
+        },
       ];
     } else {
       return httpResponse.UNAUTHORIZED(res, null, 'Not authorized to view leads');
@@ -190,7 +188,7 @@ export const fetchLeadsByRole = async (role, userId, res) => {
       return httpResponse.NOT_FOUND(res, null, message);
     }
 
-    return httpResponse.SUCCESS(res, leads, 'leads retrieved successfully');
+    return httpResponse.SUCCESS(res, leads, 'Leads retrieved successfully');
   } catch (error) {
     return httpResponse.BAD_REQUEST(res, error.message);
   }
@@ -252,7 +250,7 @@ export const getLeadsById = async (leadId, userId, role, res) => {
       leadPipeline.push({
         $project: {
           name: 1,
-          contactInfo: 1,
+          contactinfo: 1,
           leadsource: 1,
           status: 1,
           created_by: {

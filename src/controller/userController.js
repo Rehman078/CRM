@@ -46,7 +46,7 @@ const loginUser = async (req, res) => {
         token: generateToken(user.id),
       };
       // Send Welcome Email
-      sendMail(email, "Login Successful", loginSuccessEmailTemplate(user.name));
+      // sendMail(email, "Login Successful", loginSuccessEmailTemplate(user.name));
       return httpResponse.CREATED(res, responseData);
       
     } else {

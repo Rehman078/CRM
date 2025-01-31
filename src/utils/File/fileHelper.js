@@ -36,7 +36,7 @@ export const createdFileByRole = async (userId, role, source, source_id) => {
 export const fetchFilesByRole = async (source, source_id, role, userId) => {
     const populateFields = [
       { path: "uploaded_by", select: "name email" },
-      { path: "updated_by", select: "name email" },
+      { path: "uploaded_by", select: "name email" },
     ];
   
     try {

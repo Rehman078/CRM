@@ -9,7 +9,7 @@ const fileSchema = new mongoose.Schema({
   link: { type: String },
   uploaded_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required:true},
   source: { type: String, enum: ["Contact", "Lead", "Activity"], required: true },
-  source_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+  source_id: { type: mongoose.Schema.Types.ObjectId, refPath: "source", required: true },
 }, { timestamps: true });
 
 const File = mongoose.model('File', fileSchema);

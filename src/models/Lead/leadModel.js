@@ -5,8 +5,9 @@ const leadSchema = new mongoose.Schema({
         required: true
     },
     contactinfo:{
-        type: String,
+       type: Number,
         required: true
+
     },
     leadsource:{
         type: String,

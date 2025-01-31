@@ -1,5 +1,10 @@
 import Stage from "../../models/Stage/stageModel.js";
+import Opportunity from "../../models/Opportunity/opportunityModel.js";
+import Pipline from "../../models/Pipline/piplineModel.js";
+import sendMail from "../../nodemailer/nodemailerIntegration.js";
+import { opportunityStageUpdateEmailTemplate } from "../../nodemailer/emailTemplate.js";
 import { httpResponse } from "../../utils//index.js";
+import mongoose from "mongoose";
 
 const createStage = async (req, res) => {
   try {
@@ -21,7 +26,7 @@ const createStage = async (req, res) => {
 
 const getStage = async (req, res) => {
   try {
-    const stages = await Stage.find().populate('pipline_id', 'name');
+    const stages = await Stage.find().populate("pipline_id", "name");
     return httpResponse.SUCCESS(res, stages, "All Pipeline Stages");
   } catch (err) {
     console.error(err);
@@ -30,27 +35,60 @@ const getStage = async (req, res) => {
 };
 
 
+
 const updateStage = async (req, res) => {
   try {
     const id = req.params.id;
-    const {  stage, pipline_id, } = req.body;
+    const { stage, pipline_id } = req.body;
     const { _id: userId } = req.user;
+
+    // Update the stage
     const updatestage = await Stage.findByIdAndUpdate(
       id,
-      {  stage, pipline_id, updated_by: userId },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { stage, pipline_id, updated_by: userId },
+      { new: true, runValidators: true }
     );
 
-    if (!updatestage)
-      return httpResponse.NOT_FOUND(res, null, "stage not found");
+    if (!updatestage) {
+      return httpResponse.NOT_FOUND(res, null, "Stage not found");
+    }
+
+    // Retrieve related opportunities in parallel
+    const opportunitiesPromise = Opportunity.find({
+      pipelineId: pipline_id,
+    }).populate("created_by", "email name");
+
+    // Get the stage details once to avoid redundant queries in loop
+    const stageFromPipeline = await Stage.findOne({
+      pipline_id,
+      stage,
+    });
+
+    const opportunities = await opportunitiesPromise;
+
+    // Send email notifications in parallel using Promise.all
+    const emailPromises = opportunities.map(async (opportunity) => {
+      if (opportunity.created_by?.email) {
+        await sendMail(
+          opportunity.created_by.email,
+          "Opportunity Stage Updated",
+          opportunityStageUpdateEmailTemplate(
+            opportunity.created_by.name,
+            opportunity.name,
+            stageFromPipeline.stage
+          )
+        );
+      }
+    });
+
+    await Promise.all(emailPromises);
+
     return httpResponse.SUCCESS(res, updatestage, "Stage updated successfully");
   } catch (err) {
     return httpResponse.BAD_REQUEST(res, err.message);
   }
 };
+
 
 const deleteStage = async (req, res) => {
   try {

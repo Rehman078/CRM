@@ -120,16 +120,16 @@ const assignContact = async (req, res) => {
       .populate("salerep_id", "name email");
 
     // Send an email to each assigned sales representative
-    for (const rep of assignedReps) {
-      const { name, email } = rep.salerep_id;
+    // for (const rep of assignedReps) {
+    //   const { name, email } = rep.salerep_id;
 
-      // Call the sendMail function for each sales representative
-      sendMail(
-        email,
-        "Contact Assignment Email",
-        contactAssignEmailTemplate(name, contactExists.name)
-      );
-    }
+    //   // Call the sendMail function for each sales representative
+    //   sendMail(
+    //     email,
+    //     "Contact Assignment Email",
+    //     contactAssignEmailTemplate(name, contactExists.name)
+    //   );
+    // }
 
     return httpResponse.SUCCESS(
       res,

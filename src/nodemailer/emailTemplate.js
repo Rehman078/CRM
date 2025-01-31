@@ -122,13 +122,8 @@ export const opportunityStageUpdateEmailTemplate = (name, opportunity, stage) =>
         <h1 style="color: white; margin: 0;">Opportunity Update Successfully</h1>
     </div>
     <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-        <p>Hello, <strong>${name}</strong>,</p>
-        <p>We are pleased to inform you that your opportunity has been updated successfully.</p>
-        <p>Details for your reference:</p>
-        <ul style="margin: 10px 0; padding-left: 20px;">
-            <li><strong>Opportunity Name:</strong> ${opportunity} </li>
-            <li><strong>Stage Name:</strong> ${stage} </li>
-        </ul>
+       <p>Dear ${name},</p>
+        <p>The stage for your opportunity "<strong>${opportunity}</strong>" has been updated to "<strong>${stage}</strong>" in the pipeline.</p>
         <p>If you have any questions or need further assistance, please do not hesitate to reach out to our support team.</p>
         <p>Thank you for your trust and for being a valued part of [Your App Name].</p>
         <p>Best regards,<br>The [Your App Name] Team</p>
