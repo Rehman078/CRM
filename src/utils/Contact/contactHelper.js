@@ -1,6 +1,7 @@
 import Contact from "../../models/Contact/contactModel.js";
 import ContactAsignment from "../../models/Contact/assignContactModel.js";
 import { httpResponse } from "../index.js";
+import mongoose from "mongoose";
 
 export const fetchContactsByRole = async (role, userId, res) => {
   try {
@@ -237,6 +238,248 @@ export const fetchContactsByRole = async (role, userId, res) => {
     return httpResponse.BAD_REQUEST(res, error.message);
   }
 };
+
+export const fetchContactsByIdRole = async(role, userId, id, res) => {
+  try {
+    let contactPipeline = [];
+
+    if (role === "Admin" || role === "Manager") {
+      // Pipeline for Admin and Manager
+      contactPipeline = [
+        {
+          $match: { _id: new mongoose.Types.ObjectId(id) }
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "created_by",
+            foreignField: "_id",
+            as: "created_by_details",
+          },
+        },
+        {
+          $unwind: {
+            path: "$created_by_details",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "updated_by",
+            foreignField: "_id",
+            as: "updated_by_details",
+          },
+        },
+        {
+          $unwind: {
+            path: "$updated_by_details",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "contactasignments",
+            localField: "_id",
+            foreignField: "contact_id",
+            as: "assignments",
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "assignments.salerep_id",
+            foreignField: "_id",
+            as: "assignments.salerep_details",
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            email: 1,
+            phone: 1,
+            company: 1,
+            address: 1,
+            tags: 1,
+            created_by: {
+              id: "$created_by_details._id",
+              name: "$created_by_details.name",
+              email: "$created_by_details.email",
+              role: "$created_by_details.role",
+            },
+            updated_by: {
+              $cond: {
+                if: {
+                  $and: [
+                    "$updated_by_details._id",
+                    "$updated_by_details.name",
+                    "$updated_by_details.email",
+                  ],
+                },
+                then: {
+                  id: "$updated_by_details._id",
+                  name: "$updated_by_details.name",
+                  email: "$updated_by_details.email",
+                },
+                else: "$$REMOVE", // Removes the field entirely if no data
+              },
+            },
+            assigned_to: {
+              $map: {
+                input: "$assignments.salerep_details",
+                as: "salerep",
+                in: {
+                  id: "$$salerep._id",
+                  name: "$$salerep.name",
+                  email: "$$salerep.email",
+                  role: "$$salerep.role",
+                },
+              },
+            },
+          },
+        },
+      ];
+    } else if (role === "SalesRep") {
+      // Pipeline for SalesRep
+      contactPipeline = [
+        {
+          $match: { _id: new mongoose.Types.ObjectId(id) }
+        },
+        {
+          $lookup: {
+            from: "contactasignments",
+            localField: "_id",
+            foreignField: "contact_id",
+            as: "assignments",
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "created_by",
+            foreignField: "_id",
+            as: "created_by_details",
+          },
+        },
+        {
+          $unwind: {
+            path: "$created_by_details",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "updated_by",
+            foreignField: "_id",
+            as: "updated_by_details",
+          },
+        },
+        {
+          $unwind: {
+            path: "$updated_by_details",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $match: {
+            $or: [
+              { "assignments.salerep_id": userId },
+              { created_by: userId },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "assignments.salerep_id",
+            foreignField: "_id",
+            as: "assignments.salerep_details",
+          },
+        },
+        {
+          $addFields: {
+            "assignments.salerep_details": {
+              $filter: {
+                input: "$assignments.salerep_details",
+                as: "salerep",
+                cond: { $eq: ["$$salerep._id", userId] },
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            email: 1,
+            phone: 1,
+            company: 1,
+            address: 1,
+            tags: 1,
+            created_by: {
+              id: "$created_by_details._id",
+              name: "$created_by_details.name",
+              email: "$created_by_details.email",
+              role: "$created_by_details.role",
+            },
+            updated_by: {
+              $cond: {
+                if: {
+                  $and: [
+                    "$updated_by_details._id",
+                    "$updated_by_details.name",
+                    "$updated_by_details.email",
+                  ],
+                },
+                then: {
+                  id: "$updated_by_details._id",
+                  name: "$updated_by_details.name",
+                  email: "$updated_by_details.email",
+                },
+                else: "$$REMOVE", // Removes the field entirely if no data
+              },
+            },
+            assigned_to: {
+              $map: {
+                input: "$assignments.salerep_details",
+                as: "salerep",
+                in: {
+                  id: "$$salerep._id",
+                  name: "$$salerep.name",
+                  email: "$$salerep.email",
+                },
+              },
+            },
+          },
+        },
+      ];
+    } else {
+      return httpResponse.UNAUTHORIZED(
+        res,
+        null,
+        "Not authorized to view contacts"
+      );
+    }
+
+    const contacts = await Contact.aggregate(contactPipeline);
+
+    if (!contacts || contacts.length === 0) {
+      const message =
+        role === "SalesRep"
+          ? "No contacts found for the sales representative"
+          : "No contacts found";
+      return httpResponse.NOT_FOUND(res, null, message);
+    }
+
+    return httpResponse.SUCCESS(
+      res,
+      contacts,
+      "Contacts retrieved successfully"
+    );
+  } catch (error) {
+    return httpResponse.BAD_REQUEST(res, error.message);
+  }
+}
 export const updateContactByRole = async (
   contactId,
   updatedData,

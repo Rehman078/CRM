@@ -1,7 +1,7 @@
 import Contact from "../../models/Contact/contactModel.js";
 import { validateContact } from "../../validations/contactValidation.js";
 import { httpResponse } from "../../utils/index.js";
-import { fetchContactsByRole, updateContactByRole, deleteContactByRole } from "../../utils/Contact/contactHelper.js";
+import { fetchContactsByRole, updateContactByRole, deleteContactByRole, fetchContactsByIdRole } from "../../utils/Contact/contactHelper.js";
 import sendMail from "../../nodemailer/nodemailerIntegration.js";
 import { contactAssignEmailTemplate } from "../../nodemailer/emailTemplate.js";
 import ContactAssignment from "../../models/Contact/assignContactModel.js";
@@ -41,6 +41,18 @@ const getAllContacts = async (req, res) => {
   }
 };
 
+//get contact by id
+const getContactById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { role, _id: userId } = req.user;
+    return fetchContactsByIdRole(role, userId, id, res)
+
+
+   } catch (err) {
+    return httpResponse.BAD_REQUEST(res, err.message);
+  }
+};
 // UPDATE Contact
 const updateContact = async (req, res) => {
   const id = req.params.id;
@@ -144,6 +156,7 @@ const assignContact = async (req, res) => {
 export default {
   createContact,
   getAllContacts,
+  getContactById,
   updateContact,
   deleteContact,
   assignContact,
