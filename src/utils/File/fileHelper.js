@@ -35,8 +35,8 @@ export const createdFileByRole = async (userId, role, source, source_id) => {
 
 export const fetchFilesByRole = async (source, source_id, role, userId) => {
     const populateFields = [
-      { path: "uploaded_by", select: "name email" },
-      { path: "uploaded_by", select: "name email" },
+      { path: "uploaded_by", select: "name email role" },
+
     ];
   
     try {
@@ -45,7 +45,6 @@ export const fetchFilesByRole = async (source, source_id, role, userId) => {
       if (role === "Admin" || role === "Manager") {
         return await File.find(query).populate(populateFields);
       } else if (role === "SalesRep") {
-        query.uploaded_by = userId;
         return await File.find(query).populate(populateFields);
       } else {
         throw new Error("Not authorized to view files");
