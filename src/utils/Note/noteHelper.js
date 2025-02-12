@@ -34,64 +34,83 @@ export const createdNoteByRole = async (userId, role, note_to, note_type) => {
   };
 
   export const fetchNoteByRole = async (note_type, note_to, role, userId) => {
+    const populateFields = [
+      { path: "created_by", select: "name email role" },
+
+    ];
+  
     try {
-        const pipeline = [
-            {
-                $match: { note_type, note_to: new mongoose.Types.ObjectId(note_to) },
-            },
-            {
-                $lookup: {
-                    from: "users", 
-                    localField: "created_by",
-                    foreignField: "_id",
-                    as: "created_by",
-                },
-            },
-            {
-                $lookup: {
-                    from: "contacts", 
-                    localField: "note_to",
-                    foreignField: "_id",
-                    as: "note_to",
-                },
-            },
-            {
-                $unwind: { path: "$created_by", preserveNullAndEmptyArrays: true },
-            },
-            {
-                $unwind: { path: "$note_to", preserveNullAndEmptyArrays: true },
-            },
-            {
-                $project: {
-                    _id: 1, 
-                    note_type: 1,
-                    note: 1, 
-                    note_detail: {
-                         id:"$note_to._id",
-                        name: "$note_to.name", 
-                        email: "$note_to.email"
-                    },
-                    created_by: {
-                        name: "$created_by.name", 
-                        email: "$created_by.email", 
-                    },
-                },
-            },
-        ];
-
-        if (role === "SalesRep") {
-            pipeline.unshift({
-                $match: {
-                    created_by: new mongoose.Types.ObjectId(userId),
-                },
-            });
-        }
-
-        const notes = await Note.aggregate(pipeline);
-        return notes;
+      const query = { note_type, note_to };
+  
+      if (role === "Admin" || role === "Manager") {
+        return await Note.find(query).populate(populateFields);
+      } else if (role === "SalesRep") {
+        return await Note.find(query).populate(populateFields);
+      } else {
+        throw new Error("Not authorized to view files");
+      }
     } catch (err) {
-        throw new Error(err.message);
+      throw new Error(err.message);
     }
+
+    // try {
+    //     const pipeline = [
+    //         {
+    //             $match: { note_type, note_to: new mongoose.Types.ObjectId(note_to) },
+    //         },
+    //         {
+    //             $lookup: {
+    //                 from: "users", 
+    //                 localField: "created_by",
+    //                 foreignField: "_id",
+    //                 as: "created_by",
+    //             },
+    //         },
+    //         {
+    //             $lookup: {
+    //                 from: "contacts", 
+    //                 localField: "note_to",
+    //                 foreignField: "_id",
+    //                 as: "note_to",
+    //             },
+    //         },
+    //         {
+    //             $unwind: { path: "$created_by", preserveNullAndEmptyArrays: true },
+    //         },
+    //         {
+    //             $unwind: { path: "$note_to", preserveNullAndEmptyArrays: true },
+    //         },
+    //         {
+    //             $project: {
+    //                 _id: 1, 
+    //                 note_type: 1,
+    //                 note: 1, 
+    //                 note_detail: {
+    //                      id:"$note_to._id",
+    //                     name: "$note_to.name", 
+    //                     email: "$note_to.email"
+    //                 },
+    //                 created_by: {
+    //                     name: "$created_by.name", 
+    //                     email: "$created_by.email", 
+    //                 },
+    //             },
+    //         },
+    //     ];
+
+    //     if (role === "SalesRep") {
+    //         pipeline.unshift({
+    //             $match: {
+    //                 created_by: new mongoose.Types.ObjectId(userId),
+    //             },
+    //         });
+    //     }
+
+    //     const notes = await Note.aggregate(pipeline);
+    //     return notes;
+    // } catch (err) {
+    //     throw new Error(err.message);
+    // }
 };
 
 export const updateNoteByRole = async (noteId, updatedData, userId, role, res) => {

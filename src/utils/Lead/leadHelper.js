@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 import Lead from "../../models/Lead/leadModel.js";
 import LeadAsignment from "../../models/Lead/assignLeadModel.js";
 import { httpResponse } from "../index.js";
+import Note from "../../models/Note/noteModel.js";
+import File from "../../models/File/fileModel.js";
+import fs from "fs";
 
 export const fetchLeadsByRole = async (role, userId, res) => {
   try {
@@ -451,7 +454,11 @@ export const getLeadsById = async (leadId, userId, role, res) => {
       return httpResponse.NOT_FOUND(res, null, message);
     }
 
-    return httpResponse.SUCCESS(res, leads, "Leads by id retrieved successfully");
+    return httpResponse.SUCCESS(
+      res,
+      leads,
+      "Leads by id retrieved successfully"
+    );
   } catch (error) {
     return httpResponse.BAD_REQUEST(res, error.message);
   }
@@ -523,6 +530,17 @@ export const deleteLeadById = async (leadId, userId, role, res) => {
 
   if (role === "Admin" || role === "Manager") {
     await LeadAsignment.deleteMany({ lead_id: leadId });
+    await Note.deleteMany({ note_type: "Lead", note_to: leadId });
+    // Find all files related to the contact
+    const files = await File.find({ source: "Lead", source_id: leadId });
+    // Loop through the files and delete them
+    for (const file of files) {
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    }
+    // Delete all file records
+    await File.deleteMany({ source: "Lead", source_id: leadId });
     lead = await Lead.findByIdAndDelete(leadId);
     if (!lead) {
       return httpResponse.NOT_FOUND(res, null, "Lead not found");
@@ -532,6 +550,17 @@ export const deleteLeadById = async (leadId, userId, role, res) => {
   }
 
   if (role === "SalesRep") {
+    await Note.deleteMany({ note_type: "Lead", note_to: leadId });
+    // Find all files related to the contact
+    const files = await File.find({ source: "Lead", source_id: leadId });
+    // Loop through the files and delete them
+    for (const file of files) {
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    }
+    // Delete all file records
+    await File.deleteMany({ source: "Lead", source_id: leadId });
     lead = await Lead.findById(leadId);
     if (!lead) {
       return httpResponse.NOT_FOUND(res, null, "Lead not found");

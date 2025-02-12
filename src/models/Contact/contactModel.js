@@ -3,7 +3,7 @@ const contactSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    phone: { type: String, required: true },
+    phone: { type: Number, required: true, match: [/^\+?[1-9]\d{1,14}$/, "Invalid phone number"],},
     address: { type: String },
     company: { type: String },
     tags: [{ type: String }],

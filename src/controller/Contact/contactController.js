@@ -1,7 +1,12 @@
 import Contact from "../../models/Contact/contactModel.js";
 import { validateContact } from "../../validations/contactValidation.js";
 import { httpResponse } from "../../utils/index.js";
-import { fetchContactsByRole, updateContactByRole, deleteContactByRole, fetchContactsByIdRole } from "../../utils/Contact/contactHelper.js";
+import {
+  fetchContactsByRole,
+  updateContactByRole,
+  deleteContactByRole,
+  fetchContactsByIdRole,
+} from "../../utils/Contact/contactHelper.js";
 import sendMail from "../../nodemailer/nodemailerIntegration.js";
 import { contactAssignEmailTemplate } from "../../nodemailer/emailTemplate.js";
 import ContactAssignment from "../../models/Contact/assignContactModel.js";
@@ -27,6 +32,7 @@ const createContact = async (req, res) => {
       "Contact Created Successfully"
     );
   } catch (err) {
+    console.log(err.message);
     return httpResponse.BAD_REQUEST(res, err.message);
   }
 };
@@ -46,10 +52,8 @@ const getContactById = async (req, res) => {
   try {
     const id = req.params.id;
     const { role, _id: userId } = req.user;
-    return fetchContactsByIdRole(role, userId, id, res)
-
-
-   } catch (err) {
+    return fetchContactsByIdRole(role, userId, id, res);
+  } catch (err) {
     return httpResponse.BAD_REQUEST(res, err.message);
   }
 };
@@ -100,7 +104,6 @@ const assignContact = async (req, res) => {
 
   try {
     const contactExists = await Contact.findById(contact_id);
-
     if (!contactExists) {
       return res.status(404).json({ message: "Contact not found" });
     }
@@ -128,8 +131,10 @@ const assignContact = async (req, res) => {
     await ContactAssignment.insertMany(assignments);
 
     // Fetch assigned sales reps with their email addresses
-    const assignedReps = await ContactAssignment.find({ contact_id })
-      .populate("salerep_id", "name email");
+    const assignedReps = await ContactAssignment.find({ contact_id }).populate(
+      "salerep_id",
+      "name email"
+    );
 
     // Send an email to each assigned sales representative
     // for (const rep of assignedReps) {
