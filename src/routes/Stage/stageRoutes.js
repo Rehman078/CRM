@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.post("/", protect, authorizeRoles("Admin", "Manager"), stageController.createStage);
 router.get("/", protect, authorizeRoles("Admin", "Manager"), stageController.getStage);
+router.get("/pipline", protect, authorizeRoles("Admin", "Manager"), stageController.getStageByPiplineId);
  router.put("/:id",protect, authorizeRoles("Admin", "Manager"), stageController.updateStage);
  router.delete("/:id", protect, authorizeRoles("Admin", "Manager"), stageController.deleteStage)
 

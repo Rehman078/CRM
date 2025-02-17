@@ -1,4 +1,6 @@
+
 import Pipline from "../../models/Pipline/piplineModel.js";
+import Stage from "../../models/Stage/stageModel.js";
 import { httpResponse } from "../../utils/index.js";
 
 const createPipline = async (req, res) => {
@@ -21,7 +23,7 @@ const createPipline = async (req, res) => {
 
 const getAllPipline = async (req, res) => {
   try {
-    const piplines = await Pipline.find()
+    const piplines = await Pipline.find().populate("created_by", "name email role")
     return httpResponse.SUCCESS(res, piplines, "All pipline get successfully");
   } catch (err) {
     return httpResponse.BAD_REQUEST(res, err.message);
@@ -56,6 +58,7 @@ const deletePipline = async(req, res) => {
         if(!deletePipline) {
           return httpResponse.NOT_FOUND(res, "Pipeline not found.");
         }
+        await Stage.deleteMany({ pipline_id: id });
         return httpResponse.SUCCESS(res, deletePipline, "Pipeline deleted successfully");
     
     }catch(err){

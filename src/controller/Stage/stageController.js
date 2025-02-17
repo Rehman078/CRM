@@ -34,6 +34,25 @@ const getStage = async (req, res) => {
   }
 };
 
+const getStageByPiplineId  = async (req, res) => {
+  try {
+    const { pipline_id } = req.query; 
+
+    if (!pipline_id) {
+      return httpResponse.BAD_REQUEST(res, null, "Pipline ID is required.");
+    }
+
+    const stages = await Stage.find({ pipline_id }).populate("pipline_id", "name");
+
+    if (!stages.length) {
+      return httpResponse.NOT_FOUND(res, null, "No stages found for this pipline.");
+    }
+
+    return httpResponse.SUCCESS(res, stages, "Stages of Pipline fetched successfully.");
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
 
 const updateStage = async (req, res) => {
@@ -104,6 +123,8 @@ const deleteStage = async (req, res) => {
 export default {
   createStage,
   getStage,
+  getStageByPiplineId,
   updateStage,
   deleteStage,
+
 };

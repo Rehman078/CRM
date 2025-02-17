@@ -1,5 +1,6 @@
 import {
   createOpportunityByRole,
+  getOpportunityByIdRole,
   getOpportunityByRole,
   updateOpportunityByRole,
   deleteOpportunityByRole,
@@ -21,7 +22,6 @@ const createOpportunity = async (req, res) => {
     if (!parsedDate.isValid()) {
       return httpResponse.BAD_REQUEST(res, "Invalid date format for close_date. Use DD-MM-YYYY.");
     }
-    // Validate `type` and fetch `assignedTo` details
     let assignedToUser;
     if (type === "Contact") {
       assignedToUser = await Contact.findById(assignedTo).select("name email");
@@ -48,11 +48,11 @@ const createOpportunity = async (req, res) => {
     const opportunity = await createOpportunityByRole(userId, role, opportunityData);
 
     // Send email notification
-    sendMail(
-      email,
-      "Opportunity Created",
-      opportunityCreateEmailTemplate(userName, opportunity.name, assignedToUser.name)
-    );
+    // sendMail(
+    //   email,
+    //   "Opportunity Created",
+    //   opportunityCreateEmailTemplate(userName, opportunity.name, assignedToUser.name)
+    // );
 
     return httpResponse.CREATED(res, opportunity, "Opportunity created successfully");
   } catch (err) {
@@ -61,8 +61,29 @@ const createOpportunity = async (req, res) => {
   }
 };
 
-
 const getOpportunity = async (req, res) => {
+  try {
+    const { _id: userId, role } = req.user;
+
+    const opportunities = await getOpportunityByRole(
+      userId,
+      role,
+    );
+    if (!opportunities || opportunities.length === 0) {
+      return httpResponse.NOT_FOUND(res, null, "No opportunities found");
+    }
+    return httpResponse.SUCCESS(
+      res,
+      opportunities,
+      "opportunity retrived Successfully"
+    );
+  } catch (err) {
+    return httpResponse.BAD_REQUEST(res, err.message);
+  }
+};
+
+
+const getOpportunityById = async (req, res) => {
   try {
     const { type, assignedTo } = req.query;
     const { _id: userId, role } = req.user;
@@ -70,7 +91,7 @@ const getOpportunity = async (req, res) => {
     if (!type || !assignedTo) {
       return httpResponse.BAD_REQUEST(res, null, "Please add type assignedTo");
     }
-    const opportunities = await getOpportunityByRole(
+    const opportunities = await getOpportunityByIdRole(
       userId,
       role,
       type,
@@ -125,6 +146,7 @@ const deleteOpportunity = async (req, res) => {
 
 export default {
   createOpportunity,
+  getOpportunityById,
   getOpportunity,
   updateOpportunity,
   deleteOpportunity,
