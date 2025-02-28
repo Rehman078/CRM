@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+const { ObjectId } = mongoose.Types;
 import { httpResponse } from "../index.js";
 import Opportunity from "../../models/Opportunity/opportunityModel.js";
 import ContactAssign from "../../models/Contact/assignContactModel.js";
@@ -9,7 +10,7 @@ import Contact from "../../models/Contact/contactModel.js";
 export const createOpportunityByRole = async (
   userId,
   role,
-  { name, expected_revenue, close_date, pipelineId, type, assignedTo }
+  { name, expected_revenue, close_date, pipelineId, stageId, type, assignedTo }
 ) => {
   let opportunity;
   if (role === "Admin" || role === "Manager") {
@@ -18,6 +19,7 @@ export const createOpportunityByRole = async (
       expected_revenue,
       close_date,
       pipelineId,
+      stageId,
       type,
       assignedTo,
       created_by: userId,
@@ -35,6 +37,7 @@ export const createOpportunityByRole = async (
           expected_revenue,
           close_date,
           pipelineId,
+          stageId,
           type,
           assignedTo,
           created_by: userId,
@@ -51,6 +54,7 @@ export const createOpportunityByRole = async (
             expected_revenue,
             close_date,
             pipelineId,
+            stageId,
             type,
             assignedTo,
             created_by: userId,
@@ -71,6 +75,7 @@ export const createOpportunityByRole = async (
           expected_revenue,
           close_date,
           pipelineId,
+          stageId,
           type,
           assignedTo,
           created_by: userId,
@@ -87,6 +92,7 @@ export const createOpportunityByRole = async (
             expected_revenue,
             close_date,
             pipelineId,
+            stageId,
             type,
             assignedTo,
             created_by: userId,
@@ -110,14 +116,25 @@ export const getOpportunityByRole = async (userId, role) => {
     if (role === "Admin" || role === "Manager") {
       // No additional filtering for Admin or Manager
     } else if (role === "SalesRep") {
-      matchCriteria = { created_by: userId };
+      ;
     } else {
       throw new Error("Invalid role");
     }
 
     const opportunities = await Opportunity.aggregate([
-      { $match: matchCriteria },
+      // { $match: matchCriteria }
 
+      {
+        $lookup: {
+          from: "stages",
+          localField: "stageId",
+          foreignField: "_id",
+          as: "stageName",
+        },
+      },
+      {
+        $unwind: { path: "$stageName", preserveNullAndEmptyArrays: true },
+      },      
       // Lookup for the pipeline details
       {
         $lookup: {
@@ -204,6 +221,7 @@ export const getOpportunityByRole = async (userId, role) => {
           assignedTo: 1,
           createdAt: 1,
           updatedAt: 1,
+          stageName: { _id: 1, stage: 1 },
           pipelineDetails: { _id: 1, name: 1 },
           stages: 1, // Now includes all stages in an array
           createdByDetails: { _id: 1, name: 1, email: 1 },
@@ -237,6 +255,7 @@ export const getOpportunityByRole = async (userId, role) => {
           assigned: 1,
           createdAt: 1,
           updatedAt: 1,
+          stageName: { _id: 1, stage: 1 },
           pipelineDetails: 1,
           stages: 1, // This now contains all stage details in an array
           createdByDetails: 1,
@@ -244,6 +263,7 @@ export const getOpportunityByRole = async (userId, role) => {
         },
       },
     ]);
+    console.log("opportunities", opportunities);
     return opportunities;
   } catch (error) {
     console.error("Error fetching opportunities:", error);
@@ -259,21 +279,27 @@ export const getOpportunityByIdRole = async (
 ) => {
   try {
     let matchCriteria = {};
+
     if (role === "Admin" || role === "Manager") {
-      matchCriteria = { type, assignedTo };
+      matchCriteria = { type, assignedTo: new ObjectId(assignedTo) };
     } else if (role === "SalesRep") {
-      matchCriteria = { type, assignedTo, created_by: userId };
-    } else {
-      throw new Error("Invalid role");
-    }
-    if (mongoose.Types.ObjectId.isValid(assignedTo)) {
-      matchCriteria.assignedTo = new mongoose.Types.ObjectId(assignedTo);
+      matchCriteria = { type, assignedTo: new ObjectId(assignedTo) };
     }
 
     const opportunities = await Opportunity.aggregate([
       { $match: matchCriteria },
       {
-        // Lookup for the pipeline details
+        $lookup: {
+          from: "stages",
+          localField: "stageId",
+          foreignField: "_id",
+          as: "stageName",
+        },
+      },
+      {
+        $unwind: { path: "$stageName", preserveNullAndEmptyArrays: true },
+      },   
+      {
         $lookup: {
           from: "piplines",
           localField: "pipelineId",
@@ -284,20 +310,19 @@ export const getOpportunityByIdRole = async (
       {
         $unwind: { path: "$pipelineDetails", preserveNullAndEmptyArrays: true },
       },
-      // Lookup for all stages related to the pipeline and group them into an array
+
       {
         $lookup: {
           from: "stages",
           let: { pipelineId: "$pipelineId" },
           pipeline: [
             { $match: { $expr: { $eq: ["$pipline_id", "$$pipelineId"] } } },
-            { $project: { _id: 1, stage: 1 } }, // Include necessary fields
+            { $project: { _id: 1, stage: 1 } },
           ],
           as: "stages",
         },
       },
 
-      // Lookup for the created_by field to get the createdBy details
       {
         $lookup: {
           from: "users",
@@ -313,7 +338,6 @@ export const getOpportunityByIdRole = async (
         },
       },
 
-      // Lookup for the updated_by field to get the updatedBy details
       {
         $lookup: {
           from: "users",
@@ -345,6 +369,7 @@ export const getOpportunityByIdRole = async (
           as: "assignedContact",
         },
       },
+
       {
         $project: {
           name: 1,
@@ -355,7 +380,8 @@ export const getOpportunityByIdRole = async (
           createdAt: 1,
           updatedAt: 1,
           pipelineDetails: { _id: 1, name: 1 },
-          stages: 1, // Now includes all stages in an array
+          stageName: { _id: 1, stage: 1 },
+          stages: 1,
           createdByDetails: { _id: 1, name: 1, email: 1 },
           updatedByDetails: { _id: 1, name: 1, email: 1 },
           assignedLead: { _id: 1, name: 1, contactinfo: 1 },
@@ -384,7 +410,8 @@ export const getOpportunityByIdRole = async (
           createdAt: 1,
           updatedAt: 1,
           pipelineDetails: 1,
-          stages: 1, // This now contains all stage details in an array
+          stageName: { _id: 1, stage: 1 },
+          stages: 1,
           createdByDetails: 1,
           updatedByDetails: 1,
         },
@@ -398,56 +425,192 @@ export const getOpportunityByIdRole = async (
   }
 };
 
-export const updateOpportunityByRole = async (
-  oppId,
-  updatedData,
-  userId,
-  role,
-  res
-) => {
+export const getOpportunityByPipelineIdAndRole = async (userId, role, pipelineId) => {
   try {
-    let opportunities;
+    let matchCriteria = {};
+
     if (role === "Admin" || role === "Manager") {
-      opportunities = await Opportunity.findByIdAndUpdate(oppId, updatedData, {
+      matchCriteria = { pipelineId: new ObjectId(pipelineId) };
+    } else if (role === "SalesRep") {
+      matchCriteria = { pipelineId: new ObjectId(pipelineId) };
+    }
+    const opportunities = await Opportunity.aggregate([
+      { $match: matchCriteria },
+      {
+        $lookup: {
+          from: "stages",
+          localField: "stageId",
+          foreignField: "_id",
+          as: "stageName",
+        },
+      },
+      {
+        $unwind: { path: "$stageName", preserveNullAndEmptyArrays: true },
+      },   
+      {
+        $lookup: {
+          from: "piplines",
+          localField: "pipelineId",
+          foreignField: "_id",
+          as: "pipelineDetails",
+        },
+      },
+      {
+        $unwind: { path: "$pipelineDetails", preserveNullAndEmptyArrays: true },
+      },
+
+      {
+        $lookup: {
+          from: "stages",
+          let: { pipelineId: "$pipelineId" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$pipline_id", "$$pipelineId"] } } },
+            { $project: { _id: 1, stage: 1 } },
+          ],
+          as: "stages",
+        },
+      },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "created_by",
+          foreignField: "_id",
+          as: "createdByDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$createdByDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "updated_by",
+          foreignField: "_id",
+          as: "updatedByDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$updatedByDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $lookup: {
+          from: "leads",
+          localField: "assignedTo",
+          foreignField: "_id",
+          as: "assignedLead",
+        },
+      },
+      {
+        $lookup: {
+          from: "contacts",
+          localField: "assignedTo",
+          foreignField: "_id",
+          as: "assignedContact",
+        },
+      },
+
+      {
+        $project: {
+          name: 1,
+          expected_revenue: 1,
+          close_date: 1,
+          type: 1,
+          assignedTo: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          pipelineDetails: { _id: 1, name: 1 },
+          stageName: { _id: 1, stage: 1 },
+          stages: 1,
+          createdByDetails: { _id: 1, name: 1, email: 1 },
+          updatedByDetails: { _id: 1, name: 1, email: 1 },
+          assignedLead: { _id: 1, name: 1, contactinfo: 1 },
+          assignedContact: { _id: 1, name: 1, email: 1 },
+        },
+      },
+      {
+        $addFields: {
+          assigned: {
+            $cond: {
+              if: { $gt: [{ $size: "$assignedLead" }, 0] },
+              then: { $arrayElemAt: ["$assignedLead", 0] },
+              else: { $arrayElemAt: ["$assignedContact", 0] },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          expected_revenue: 1,
+          close_date: 1,
+          type: 1,
+          assignedTo: 1,
+          assigned: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          pipelineDetails: 1,
+          stageName: { _id: 1, stage: 1 },
+          stages: 1,
+          createdByDetails: 1,
+          updatedByDetails: 1,
+        },
+      },
+    ]);
+
+    return opportunities;
+  } catch (error) {
+    console.error("Error fetching opportunities:", error);
+    throw error;
+  }
+};
+  
+
+export const updateOpportunityByRole = async (oppId, updatedData, userId, role) => {
+  try {
+    let opportunity;
+
+    if (role === "Admin" || role === "Manager") {
+      opportunity = await Opportunity.findByIdAndUpdate(oppId, updatedData, {
         new: true,
         runValidators: true,
       });
-      if (!opportunities) {
-        return httpResponse.NOT_FOUND(res, null, "opporunity not found");
-      }
-      return httpResponse.SUCCESS(
-        res,
-        opportunities,
-        "opporunity updated successfully"
-      );
+      return opportunity;
     }
+
     if (role === "SalesRep") {
-      opportunities = await Opportunity.findOne({
+      opportunity = await Opportunity.findOne({
         _id: oppId,
         created_by: userId,
       });
-      if (!opportunities) {
-        return httpResponse.NOT_FOUND(
-          res,
-          null,
-          "You are not authorized to update this opportunity"
-        );
+
+      if (!opportunity) {
+        return null;
       }
-      opportunities = await Opportunity.findByIdAndUpdate(oppId, updatedData, {
+
+      opportunity = await Opportunity.findByIdAndUpdate(oppId, updatedData, {
         new: true,
         runValidators: true,
       });
 
-      return httpResponse.SUCCESS(
-        res,
-        opportunities,
-        "opportunity updated successfully"
-      );
+      return opportunity; 
     }
+
+    return null; 
   } catch (error) {
-    return httpResponse.BAD_REQUEST(res, error.message);
+    console.error("Error updating opportunity:", error);
+    throw new Error(error.message); // Throw error instead of sending response
   }
 };
+
 
 export const deleteOpportunityByRole = async (oppId, userId, role, res) => {
   let opportunities;

@@ -1,6 +1,7 @@
 
 import Pipline from "../../models/Pipline/piplineModel.js";
 import Stage from "../../models/Stage/stageModel.js";
+import Opportunity from "../../models/Opportunity/opportunityModel.js";
 import { httpResponse } from "../../utils/index.js";
 
 const createPipline = async (req, res) => {
@@ -59,6 +60,7 @@ const deletePipline = async(req, res) => {
           return httpResponse.NOT_FOUND(res, "Pipeline not found.");
         }
         await Stage.deleteMany({ pipline_id: id });
+        await Opportunity.deleteMany({pipelineId:id})
         return httpResponse.SUCCESS(res, deletePipline, "Pipeline deleted successfully");
     
     }catch(err){

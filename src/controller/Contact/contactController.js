@@ -37,6 +37,7 @@ const createContact = async (req, res) => {
   }
 };
 
+
 // READ Contacts on base of role
 const getAllContacts = async (req, res) => {
   try {
@@ -165,4 +166,5 @@ export default {
   updateContact,
   deleteContact,
   assignContact,
+
 };
