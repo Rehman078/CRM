@@ -21,11 +21,19 @@ app.use(cors({
     credentials: true, 
   }));
   
-// Start the cron job
-sendOpportunityReminders();
+// Start the cron job (only in non-serverless environment)
+if (process.env.NODE_ENV !== 'production') {
+    sendOpportunityReminders();
+}
 //dbconnection
 connectDB();
 app.use("/src/public", express.static("src/public"));
+
+// Health check
+app.get("/", (req, res) => {
+    res.json({ status: "ok", message: "CRM API is running" });
+});
+
 // Routes
 app.use("/api", userRoutes);
 app.use("/api/contacts", contactRoutes);
@@ -35,7 +43,14 @@ app.use("/api/notes", noteRoutes);
 app.use("/api/piplines", piplineRoutes)
 app.use("/api/stages", stageRoutes)
 app.use("/api/opportunities", opportuniyRoutes)
-app.listen(port, () =>{
-    console.log(`app is listen on ${port}`)
-});
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(port, () => {
+        console.log(`app is listen on ${port}`)
+    });
+}
+
+// Export for Vercel serverless
+export default app;
 
