@@ -35,6 +35,4 @@ A RESTful Customer Relationship Management (CRM) backend built with Express.js a
 
 ## Author
 
-**Rehman Naveed** - [LinkedIn](https://www.linkedin.com/in/rehmannaveed/)
-
-## License
+**Rehman Naveed** - Full Stack Web Developer - [LinkedIn](https://www.linkedin.com/in/rehmannaveed/)
